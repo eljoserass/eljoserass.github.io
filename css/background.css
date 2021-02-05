@@ -1,0 +1,40 @@
+.container {
+    width:100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 50px;
+  }
+  .frame {
+    width: 900px;
+    height: 900px;
+    position: absolute;
+    border-radius: 50px;
+    border: 5px #087be6 solid;
+    box-shadow: 
+    0px 0px 20px #00ccff,
+    inset 0px 0px 20px #00ccff,
+    0px 0px 60px #ff00c8,
+    inset 0px 0px 60px #ff00c8;
+    filter:brightness(1.5) contrast(3);
+  }
+  body {
+    background: linear-gradient(90deg, rgba(0,41,69,1) 6%, rgb(53, 0, 56) 29%, rgba(7,33,71,1) 84%);
+  }
+  .frame:nth-child(1) {
+    transform: rotate(40deg) translateY(0px) translateZ(0px);
+    opacity: 1.00;
+    animation-delay: 0.1s;
+  }
+  .frame:nth-child(2) {
+    transform: rotate(40deg) translateY(50px) translateZ(-10px);
+    opacity: 0.9;
+    animation-delay: 0.3s;
+  }
+  .frame:nth-child(3) {
+    transform: rotate(40deg) translateY(100px) translateZ(-20px);
+    opacity: 0.85;
+    animation-delay: 0.5s;
+  }
