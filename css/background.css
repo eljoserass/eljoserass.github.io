@@ -1,53 +1,33 @@
+body {
+  background: linear-gradient(103deg, rgba(34,193,195,1) 0%, rgba(253,187,45,1) 100%);
+  /* Keep the inherited background full size. */
+  background-attachment: fixed; 
+  background-size: cover;
+  display: grid;
+  height: 100vh;
+}
 
 .container {
-    width:100%;
-    height: 100%;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    perspective: 50px;
-  }
-  .frame {
-    width: 900px;
-    height: 900px;
-    position: absolute;
-    border-radius: 50px;
-    border: 5px #087be6 solid;
-    box-shadow: 
-    0px 0px 20px #00ccff,
-    inset 0px 0px 20px #00ccff,
-    0px 0px 60px #ff00c8,
-    inset 0px 0px 60px #ff00c8;
-    filter:brightness(1.5) contrast(3);
-  }
-  body {
-    background: linear-gradient(103deg, rgba(34,193,195,1) 0%, rgba(253,187,45,1) 100%);
-  }
-  .frame:nth-child(1) {
-    transform: rotate(40deg) translateY(0px) translateZ(0px);
-    opacity: 1.00;
-    animation-delay: 0.1s;
-  }
-  .frame:nth-child(2) {
-    transform: rotate(40deg) translateY(50px) translateZ(-10px);
-    opacity: 0.9;
-    animation-delay: 0.3s;
-  }
-  .frame:nth-child(3) {
-    transform: rotate(40deg) translateY(100px) translateZ(-20px);
-    opacity: 0.85;
-    animation-delay: 0.5s;
-  }
+  width: 20rem;
+  height: 50rem;
+  box-shadow: 0 0 1rem 0 rgba(0, 0, 0, .2); 
+  border-radius: 5px;
+  position: relative;
+  z-index: 1;
+  background: inherit;
+  overflow: hidden;
+}
 
-  html {
-    scroll-behavior: smooth;
-  }
-
-  h1 {
-    color: white;
-  }
-
-  nav .navbar-link{
-    color: white !important;
-    }
+.container:before {
+  content: "";
+  position: absolute;
+  background: inherit;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  box-shadow: inset 0 0 2000px rgba(255, 255, 255, .5);
+  filter: blur(10px);
+  margin: -20px;
+}
