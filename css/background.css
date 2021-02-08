@@ -22,7 +22,7 @@
     filter:brightness(1.5) contrast(3);
   }
   body {
-    background: linear-gradient(90deg, rgba(0,41,69,1) 6%, rgb(53, 0, 56) 29%, rgba(7,33,71,1) 84%);
+    background: linear-gradient(103deg, rgba(34,193,195,1) 0%, rgba(253,187,45,1) 100%);
   }
   .frame:nth-child(1) {
     transform: rotate(40deg) translateY(0px) translateZ(0px);
@@ -39,3 +39,15 @@
     opacity: 0.85;
     animation-delay: 0.5s;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  h1 {
+    color: white;
+  }
+
+  nav .navbar-link{
+    color: white !important;
+    }

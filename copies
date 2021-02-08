@@ -1,0 +1,8 @@
+<div class="container">
+    <div class="frame"></div>
+    <div class="frame"></div>
+    <div class="frame"></div>
+</div>
+
+background: linear-gradient(90deg, rgba(0,41,69,1) 6%, rgb(53, 0, 56) 29%, rgba(7,33,71,1) 84%);
+linear-gradient(103deg, rgba(34,193,195,1) 0%, rgba(253,187,45,1) 100%);
