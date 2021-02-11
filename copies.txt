@@ -1,0 +1,27 @@
+<div class="testimonial text-xs is-revealing">
+								<div class="testimonial-inner">
+									<div class="testimonial-main">
+										<div class="testimonial-header">
+											<img class="mb-16" src="dist/images/testimonial-03.png" alt="Testimonial">
+										</div>
+										<div class="testimonial-body">
+											<p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt.</p>
+										</div>
+									</div>
+									<div class="testimonial-footer">
+										<div class="testimonial-link">
+											<a href="#">@markbrown</a>
+										</div>
+									</div>
+								</div>
+							</div>
+
+
+<div class="hero-form field field-grouped">
+								<div class="control control-expanded">
+									<input class="input" type="email" name="email" placeholder="Your best email&hellip;">
+								</div>
+								<div class="control">
+									<a class="button button-primary button-block" href="#">Early access</a>
+								</div>
+							</div>
