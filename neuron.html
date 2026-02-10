@@ -225,6 +225,7 @@
     var simTime = 0;                // simulation time in ms
     var running = true;
     var lastFrameTime = null;
+    var timeAccum = 0;              // fractional time accumulator
 
     // ring buffers for traces
     var bufLen = Math.ceil(MAX_BUF_MS / SIM_DT_MS);
@@ -280,6 +281,7 @@
       totalInSpikes = 0;
       totalOutSpikes = 0;
       lastFrameTime = null;
+      timeAccum = 0;
       vTrace.fill(0);
       inSpikes.fill(0);
       outSpikes.fill(0);
@@ -471,9 +473,11 @@
       // clamp to avoid huge jumps (e.g. tab was hidden)
       if (elapsed > 100) elapsed = 100;
 
-      // run simulation steps for elapsed time
+      // run simulation steps for elapsed time (accumulate fractional ms)
       var p = getParams();
-      var steps = Math.floor(elapsed / SIM_DT_MS);
+      timeAccum += elapsed;
+      var steps = Math.floor(timeAccum / SIM_DT_MS);
+      timeAccum -= steps * SIM_DT_MS;
       for (var s = 0; s < steps; s++) {
         simStep(p);
       }
