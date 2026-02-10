@@ -246,7 +246,7 @@ def build_input_array(dt, T):
     n_steps = int(T / dt)
     spikes = np.zeros(n_steps)
     for st in input_spike_times:
-        idx = int(st / dt)
+        idx = round(st / dt)
         if 0 <= idx < n_steps:
             spikes[idx] = 1.0
     return spikes
@@ -377,9 +377,10 @@ tracker = TimeTracker()
 def on_spike(event):
     tau, thresh, v_reset, weight, dt, T = get_params()
     t = tracker.elapsed_ms()
-    # clamp to simulation window
-    if t > T:
-        t = T - dt
+    # ignore spikes outside simulation window
+    if t >= T:
+        document.getElementById("status").textContent = "spike ignored — past simulation time. press reset to start over."
+        return
     input_spike_times.append(t)
     render()
 
