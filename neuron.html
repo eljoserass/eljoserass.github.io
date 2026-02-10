@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LIF Neuron Simulator</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+  <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+  <style>
+    body { max-width: 900px; }
+
+    .spike-btn {
+      background: #e0e0e0;
+      color: #1a1a1a;
+      border: none;
+      padding: 12px 32px;
+      font-family: Georgia, serif;
+      font-size: 1.1em;
+      cursor: pointer;
+      border-radius: 4px;
+      margin: 10px 0;
+      transition: background 0.1s;
+    }
+    .spike-btn:hover { background: #fff; }
+    .spike-btn:active { background: #ff6666; }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 20px;
+      margin: 15px 0;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .control-group label {
+      font-size: 0.9em;
+      color: #aaa;
+      margin-bottom: 2px;
+    }
+    .control-group input[type="range"] {
+      width: 100%;
+      accent-color: #e0e0e0;
+    }
+    .control-group .value-display {
+      font-size: 0.85em;
+      color: #888;
+      text-align: right;
+    }
+
+    #plot-area {
+      width: 100%;
+      min-height: 200px;
+      margin: 10px 0;
+    }
+    #plot-area canvas, #plot-area img {
+      width: 100% !important;
+      height: auto !important;
+    }
+
+    .code-editor-container {
+      margin: 15px 0;
+    }
+    .code-editor-container textarea {
+      width: 100%;
+      min-height: 280px;
+      background: #2a2a2a;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 3px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 0.9em;
+      line-height: 1.5;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    .code-editor-container textarea:focus {
+      outline: 1px solid #666;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .run-btn {
+      background: #4a9;
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      font-family: Georgia, serif;
+      font-size: 0.95em;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+    .run-btn:hover { background: #5ba; }
+
+    .reset-btn {
+      background: #a44;
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      font-family: Georgia, serif;
+      font-size: 0.95em;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+    .reset-btn:hover { background: #c55; }
+
+    #status {
+      color: #888;
+      font-size: 0.85em;
+      margin: 5px 0;
+    }
+
+    .loading-msg {
+      color: #888;
+      font-style: italic;
+      padding: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <p><a href="/">← home</a></p>
+  <h1>LIF Neuron Simulator</h1>
+
+  <p>Interactive <a href="https://en.wikipedia.org/wiki/Biological_neuron_model#Leaky_integrate-and-fire">Leaky Integrate-and-Fire</a> neuron simulator. Press the button to inject input spikes, tweak the parameters, and edit the simulation code below.</p>
+
+  <div class="action-row">
+    <button class="spike-btn" id="spike-btn">⚡ spike me</button>
+    <button class="reset-btn" id="reset-btn">reset</button>
+    <span id="status">loading pyscript…</span>
+  </div>
+
+  <h2>parameters</h2>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>τ (membrane time constant): <span id="tau-val">20</span> ms</label>
+      <input type="range" id="tau" min="1" max="100" value="20" step="1">
+    </div>
+    <div class="control-group">
+      <label>threshold: <span id="thresh-val">1.0</span></label>
+      <input type="range" id="thresh" min="0.1" max="3.0" value="1.0" step="0.05">
+    </div>
+    <div class="control-group">
+      <label>V_reset: <span id="vreset-val">0.0</span></label>
+      <input type="range" id="vreset" min="-1.0" max="0.5" value="0.0" step="0.05">
+    </div>
+    <div class="control-group">
+      <label>spike weight: <span id="weight-val">0.5</span></label>
+      <input type="range" id="weight" min="0.05" max="2.0" value="0.5" step="0.05">
+    </div>
+    <div class="control-group">
+      <label>dt (time step): <span id="dt-val">1.0</span> ms</label>
+      <input type="range" id="dt" min="0.1" max="5.0" value="1.0" step="0.1">
+    </div>
+    <div class="control-group">
+      <label>simulation time: <span id="T-val">500</span> ms</label>
+      <input type="range" id="T" min="100" max="2000" value="500" step="50">
+    </div>
+  </div>
+
+  <div id="plot-area">
+    <p class="loading-msg">plots will appear here once pyscript loads…</p>
+  </div>
+
+  <h2>simulation code</h2>
+
+  <p>Edit the Python function below to change the neuron dynamics. Click "run simulation" to apply.</p>
+
+  <div class="code-editor-container">
+    <textarea id="code-editor">def simulate_lif(input_spikes, tau, thresh, v_reset, weight, dt, T):
+    """
+    Simulate a Leaky Integrate-and-Fire neuron.
+
+    dV/dt = -V / tau  (leak towards 0)
+
+    When an input spike arrives, V += weight.
+    When V >= threshold, the neuron fires and V is reset to v_reset.
+
+    Returns: time, V_trace, output_spikes
+    """
+    import numpy as np
+
+    n_steps = int(T / dt)
+    time = np.arange(n_steps) * dt
+    V = np.zeros(n_steps)
+    output_spikes = np.zeros(n_steps)
+
+    for t in range(1, n_steps):
+        # leak dynamics: dV/dt = -V / tau
+        dV = -V[t-1] / tau
+        V[t] = V[t-1] + dV * dt
+
+        # add input spike contribution
+        if input_spikes[t] > 0:
+            V[t] += weight * input_spikes[t]
+
+        # threshold check — fire and reset
+        if V[t] >= thresh:
+            output_spikes[t] = 1.0
+            V[t] = v_reset
+
+    return time, V, output_spikes
+</textarea>
+  </div>
+
+  <div class="action-row">
+    <button class="run-btn" id="run-btn">run simulation</button>
+  </div>
+
+  <hr>
+  <p><small><a href="/">home</a></small></p>
+
+  <script type="py" config='{"packages": ["numpy", "matplotlib"]}'>
+import numpy as np
+from js import document, window
+from pyodide.ffi import create_proxy
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
+import io, base64
+
+# --- state ---
+input_spike_times = []   # list of spike times in ms
+sim_dirty = True
+
+def get_params():
+    tau = float(document.getElementById("tau").value)
+    thresh = float(document.getElementById("thresh").value)
+    v_reset = float(document.getElementById("vreset").value)
+    weight = float(document.getElementById("weight").value)
+    dt = float(document.getElementById("dt").value)
+    T = float(document.getElementById("T").value)
+    return tau, thresh, v_reset, weight, dt, T
+
+def build_input_array(dt, T):
+    n_steps = int(T / dt)
+    spikes = np.zeros(n_steps)
+    for st in input_spike_times:
+        idx = round(st / dt)
+        if 0 <= idx < n_steps:
+            spikes[idx] = 1.0
+    return spikes
+
+def default_simulate(input_spikes, tau, thresh, v_reset, weight, dt, T):
+    n_steps = int(T / dt)
+    time = np.arange(n_steps) * dt
+    V = np.zeros(n_steps)
+    output_spikes = np.zeros(n_steps)
+    for t in range(1, n_steps):
+        dV = -V[t-1] / tau
+        V[t] = V[t-1] + dV * dt
+        if input_spikes[t] > 0:
+            V[t] += weight * input_spikes[t]
+        if V[t] >= thresh:
+            output_spikes[t] = 1.0
+            V[t] = v_reset
+    return time, V, output_spikes
+
+def get_simulate_fn():
+    """Try to compile user code, fall back to default."""
+    code = document.getElementById("code-editor").value
+    local_ns = {}
+    try:
+        exec(code, {"np": np, "numpy": np, "__builtins__": __builtins__}, local_ns)
+        if "simulate_lif" in local_ns:
+            return local_ns["simulate_lif"]
+    except Exception as e:
+        document.getElementById("status").textContent = f"code error: {e}"
+    return default_simulate
+
+def render():
+    global sim_dirty
+    tau, thresh, v_reset, weight, dt, T = get_params()
+    input_spikes = build_input_array(dt, T)
+
+    sim_fn = get_simulate_fn()
+    try:
+        time, V, output_spikes = sim_fn(input_spikes, tau, thresh, v_reset, weight, dt, T)
+    except Exception as e:
+        document.getElementById("status").textContent = f"sim error: {e}"
+        return
+
+    # --- plotting ---
+    fig, axes = plt.subplots(3, 1, figsize=(9, 5.5),
+                             gridspec_kw={"height_ratios": [1, 4, 1]},
+                             sharex=True)
+    fig.patch.set_facecolor("#1a1a1a")
+
+    colors = {"bg": "#1a1a1a", "fg": "#e0e0e0", "grid": "#333",
+              "spike_in": "#6cf", "membrane": "#4f8", "thresh": "#f66",
+              "spike_out": "#fc6"}
+
+    for ax in axes:
+        ax.set_facecolor(colors["bg"])
+        ax.tick_params(colors=colors["fg"], labelcolor=colors["fg"], labelsize=8)
+        for spine in ax.spines.values():
+            spine.set_color(colors["grid"])
+        ax.grid(True, color=colors["grid"], linewidth=0.3, alpha=0.5)
+
+    # input spikes
+    ax_in = axes[0]
+    spike_idx = np.where(input_spikes > 0)[0]
+    if len(spike_idx) > 0:
+        ax_in.vlines(time[spike_idx], 0, 1, colors=colors["spike_in"], linewidth=1.5)
+    ax_in.set_ylim(-0.1, 1.3)
+    ax_in.set_yticks([])
+    ax_in.set_ylabel("in", color=colors["fg"], fontsize=9)
+
+    # membrane potential
+    ax_v = axes[1]
+    ax_v.plot(time, V, color=colors["membrane"], linewidth=1.2, label="V(t)")
+    ax_v.axhline(thresh, color=colors["thresh"], linewidth=1, linestyle="--",
+                 alpha=0.8, label=f"threshold={thresh:.2f}")
+    ax_v.axhline(v_reset, color="#888", linewidth=0.6, linestyle=":", alpha=0.5,
+                 label=f"V_reset={v_reset:.2f}")
+    ax_v.set_ylabel("V", color=colors["fg"], fontsize=9)
+    ax_v.legend(loc="upper right", fontsize=7,
+                facecolor="#2a2a2a", edgecolor="#444", labelcolor=colors["fg"])
+
+    # output spikes
+    ax_out = axes[2]
+    out_idx = np.where(output_spikes > 0)[0]
+    if len(out_idx) > 0:
+        ax_out.vlines(time[out_idx], 0, 1, colors=colors["spike_out"], linewidth=1.5)
+    ax_out.set_ylim(-0.1, 1.3)
+    ax_out.set_yticks([])
+    ax_out.set_ylabel("out", color=colors["fg"], fontsize=9)
+    ax_out.set_xlabel("time (ms)", color=colors["fg"], fontsize=9)
+
+    plt.tight_layout()
+
+    # render to image
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=120, facecolor=colors["bg"])
+    plt.close(fig)
+    buf.seek(0)
+    img_data = base64.b64encode(buf.read()).decode("ascii")
+
+    plot_area = document.getElementById("plot-area")
+    plot_area.innerHTML = f'<img src="data:image/png;base64,{img_data}" alt="LIF simulation">'
+
+    n_in = int(np.sum(input_spikes))
+    n_out = int(np.sum(output_spikes))
+    document.getElementById("status").textContent = (
+        f"input spikes: {n_in} | output spikes: {n_out} | "
+        f"τ={tau} thresh={thresh} V_reset={v_reset} w={weight}"
+    )
+    sim_dirty = False
+
+# --- elapsed time tracker for spike placement ---
+class TimeTracker:
+    def __init__(self):
+        self.start = None
+    def reset(self):
+        self.start = None
+    def elapsed_ms(self):
+        if self.start is None:
+            from js import Date
+            self.start = Date.now()
+            return 0.0
+        from js import Date
+        return Date.now() - self.start
+
+tracker = TimeTracker()
+
+# --- event handlers ---
+def on_spike(event):
+    tau, thresh, v_reset, weight, dt, T = get_params()
+    t = tracker.elapsed_ms()
+    # ignore spikes outside simulation window
+    if t >= T:
+        document.getElementById("status").textContent = "spike ignored — past simulation time. press reset to start over."
+        return
+    input_spike_times.append(t)
+    render()
+
+def on_reset(event):
+    global input_spike_times
+    input_spike_times = []
+    tracker.reset()
+    render()
+
+def on_run(event):
+    render()
+
+def on_slider(event):
+    # update displayed values
+    for sid in ["tau", "thresh", "vreset", "weight", "dt", "T"]:
+        el = document.getElementById(sid)
+        disp = document.getElementById(sid + "-val")
+        if el and disp:
+            disp.textContent = el.value
+    render()
+
+# attach events
+document.getElementById("spike-btn").addEventListener("click", create_proxy(on_spike))
+document.getElementById("reset-btn").addEventListener("click", create_proxy(on_reset))
+document.getElementById("run-btn").addEventListener("click", create_proxy(on_run))
+
+for sid in ["tau", "thresh", "vreset", "weight", "dt", "T"]:
+    el = document.getElementById(sid)
+    if el:
+        el.addEventListener("input", create_proxy(on_slider))
+
+# initial render
+document.getElementById("status").textContent = "ready — press spike me!"
+render()
+  </script>
+</body>
+</html>
