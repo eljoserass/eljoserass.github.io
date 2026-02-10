@@ -44,20 +44,20 @@
       width: 100%;
       accent-color: #e0e0e0;
     }
-    .control-group .value-display {
-      font-size: 0.85em;
-      color: #888;
-      text-align: right;
-    }
 
-    #plot-area {
+    .canvas-container {
       width: 100%;
-      min-height: 200px;
       margin: 10px 0;
     }
-    #plot-area canvas, #plot-area img {
-      width: 100% !important;
-      height: auto !important;
+    .canvas-container canvas {
+      width: 100%;
+      display: block;
+      border-radius: 3px;
+    }
+    .canvas-label {
+      font-size: 0.8em;
+      color: #888;
+      margin: 2px 0;
     }
 
     .code-editor-container {
@@ -88,7 +88,7 @@
       flex-wrap: wrap;
     }
 
-    .run-btn {
+    .apply-btn {
       background: #4a9;
       color: #fff;
       border: none;
@@ -99,7 +99,7 @@
       border-radius: 4px;
       transition: background 0.1s;
     }
-    .run-btn:hover { background: #5ba; }
+    .apply-btn:hover { background: #5ba; }
 
     .reset-btn {
       background: #a44;
@@ -114,10 +114,32 @@
     }
     .reset-btn:hover { background: #c55; }
 
+    .pause-btn {
+      background: #555;
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      font-family: Georgia, serif;
+      font-size: 0.95em;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+    .pause-btn:hover { background: #777; }
+
     #status {
       color: #888;
       font-size: 0.85em;
       margin: 5px 0;
+    }
+
+    #code-status {
+      color: #888;
+      font-size: 0.85em;
+      margin: 5px 0;
+    }
+    #code-status.error {
+      color: #f66;
     }
 
     .loading-msg {
@@ -131,10 +153,11 @@
   <p><a href="/">← home</a></p>
   <h1>LIF Neuron Simulator</h1>
 
-  <p>Interactive <a href="https://en.wikipedia.org/wiki/Biological_neuron_model#Leaky_integrate-and-fire">Leaky Integrate-and-Fire</a> neuron simulator. Press the button to inject input spikes, tweak the parameters, and edit the simulation code below.</p>
+  <p>Interactive <a href="https://en.wikipedia.org/wiki/Biological_neuron_model#Leaky_integrate-and-fire">Leaky Integrate-and-Fire</a> neuron simulator running in real time. Press the button to inject input spikes and watch the membrane potential evolve dynamically. Edit the Python simulation code below to change the neuron dynamics.</p>
 
   <div class="action-row">
     <button class="spike-btn" id="spike-btn">⚡ spike me</button>
+    <button class="pause-btn" id="pause-btn">pause</button>
     <button class="reset-btn" id="reset-btn">reset</button>
     <span id="status">loading pyscript…</span>
   </div>
@@ -159,262 +182,479 @@
       <input type="range" id="weight" min="0.05" max="2.0" value="0.5" step="0.05">
     </div>
     <div class="control-group">
-      <label>dt (time step): <span id="dt-val">1.0</span> ms</label>
-      <input type="range" id="dt" min="0.1" max="5.0" value="1.0" step="0.1">
-    </div>
-    <div class="control-group">
-      <label>simulation time: <span id="T-val">500</span> ms</label>
-      <input type="range" id="T" min="100" max="2000" value="500" step="50">
+      <label>time window: <span id="window-val">2000</span> ms</label>
+      <input type="range" id="window" min="200" max="5000" value="2000" step="100">
     </div>
   </div>
 
-  <div id="plot-area">
-    <p class="loading-msg">plots will appear here once pyscript loads…</p>
+  <div class="canvas-container">
+    <p class="canvas-label">input spikes</p>
+    <canvas id="canvas-in" height="40"></canvas>
+    <p class="canvas-label">membrane potential V(t)</p>
+    <canvas id="canvas-v" height="200"></canvas>
+    <p class="canvas-label">output spikes</p>
+    <canvas id="canvas-out" height="40"></canvas>
   </div>
 
   <h2>simulation code</h2>
 
-  <p>Edit the Python function below to change the neuron dynamics. Click "run simulation" to apply.</p>
+  <p>Edit the Python function below to change the neuron dynamics. Click "apply code" to use your changes in the live simulation.</p>
 
   <div class="code-editor-container">
-    <textarea id="code-editor">def simulate_lif(input_spikes, tau, thresh, v_reset, weight, dt, T):
+    <textarea id="code-editor">def sim_step(V, got_input, tau, thresh, v_reset, weight, dt):
     """
-    Simulate a Leaky Integrate-and-Fire neuron.
+    One simulation step of a Leaky Integrate-and-Fire neuron.
 
-    dV/dt = -V / tau  (leak towards 0)
+    Args:
+        V:         current membrane potential
+        got_input: 1 if an input spike arrived this step, 0 otherwise
+        tau:       membrane time constant (ms)
+        thresh:    firing threshold
+        v_reset:   reset voltage after firing
+        weight:    input spike weight
+        dt:        timestep (ms)
 
-    When an input spike arrives, V += weight.
-    When V >= threshold, the neuron fires and V is reset to v_reset.
-
-    Returns: time, V_trace, output_spikes
+    Returns: (new_V, fired)
+        new_V:  updated membrane potential
+        fired:  1 if the neuron fired this step, 0 otherwise
     """
-    import numpy as np
+    # leak dynamics: dV/dt = -V / tau
+    dV = -V / tau
+    V += dV * dt
 
-    n_steps = int(T / dt)
-    time = np.arange(n_steps) * dt
-    V = np.zeros(n_steps)
-    output_spikes = np.zeros(n_steps)
+    # add input spike contribution
+    if got_input:
+        V += weight
 
-    for t in range(1, n_steps):
-        # leak dynamics: dV/dt = -V / tau
-        dV = -V[t-1] / tau
-        V[t] = V[t-1] + dV * dt
+    # threshold check — fire and reset
+    fired = 0
+    if V >= thresh:
+        fired = 1
+        V = v_reset
 
-        # add input spike contribution
-        if input_spikes[t] > 0:
-            V[t] += weight * input_spikes[t]
-
-        # threshold check — fire and reset
-        if V[t] >= thresh:
-            output_spikes[t] = 1.0
-            V[t] = v_reset
-
-    return time, V, output_spikes
+    return V, fired
 </textarea>
   </div>
 
   <div class="action-row">
-    <button class="run-btn" id="run-btn">run simulation</button>
+    <button class="apply-btn" id="apply-btn">apply code</button>
+    <span id="code-status"></span>
   </div>
 
   <hr>
   <p><small><a href="/">home</a></small></p>
 
-  <script type="py" config='{"packages": ["numpy", "matplotlib"]}'>
-import numpy as np
+  <!-- PyScript: compile user Python into a callable sim_step function -->
+  <script type="py">
 from js import document, window
 from pyodide.ffi import create_proxy
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-import io, base64
+import traceback
 
-# --- state ---
-input_spike_times = []   # list of spike times in ms
-sim_dirty = True
+# --- The active sim_step function, callable from JS ---
+_user_sim_step = None
 
-def get_params():
-    tau = float(document.getElementById("tau").value)
-    thresh = float(document.getElementById("thresh").value)
-    v_reset = float(document.getElementById("vreset").value)
-    weight = float(document.getElementById("weight").value)
-    dt = float(document.getElementById("dt").value)
-    T = float(document.getElementById("T").value)
-    return tau, thresh, v_reset, weight, dt, T
+def _default_sim_step(V, got_input, tau, thresh, v_reset, weight, dt):
+    dV = -V / tau
+    V += dV * dt
+    if got_input:
+        V += weight
+    fired = 0
+    if V >= thresh:
+        fired = 1
+        V = v_reset
+    return V, fired
 
-def build_input_array(dt, T):
-    n_steps = int(T / dt)
-    spikes = np.zeros(n_steps)
-    for st in input_spike_times:
-        idx = round(st / dt)
-        if 0 <= idx < n_steps:
-            spikes[idx] = 1.0
-    return spikes
+_user_sim_step = _default_sim_step
 
-def default_simulate(input_spikes, tau, thresh, v_reset, weight, dt, T):
-    n_steps = int(T / dt)
-    time = np.arange(n_steps) * dt
-    V = np.zeros(n_steps)
-    output_spikes = np.zeros(n_steps)
-    for t in range(1, n_steps):
-        dV = -V[t-1] / tau
-        V[t] = V[t-1] + dV * dt
-        if input_spikes[t] > 0:
-            V[t] += weight * input_spikes[t]
-        if V[t] >= thresh:
-            output_spikes[t] = 1.0
-            V[t] = v_reset
-    return time, V, output_spikes
+def py_sim_step(V, got_input, tau, thresh, v_reset, weight, dt):
+    """Called from JS on each simulation timestep."""
+    global _runtime_error_shown
+    try:
+        result = _user_sim_step(float(V), int(got_input), float(tau),
+                                float(thresh), float(v_reset), float(weight), float(dt))
+        return [float(result[0]), int(result[1])]
+    except Exception as e:
+        # show error once, then fallback silently
+        if not _runtime_error_shown:
+            document.getElementById("code-status").textContent = f"runtime error: {e} — using default"
+            document.getElementById("code-status").className = "error"
+            _runtime_error_shown = True
+        result = _default_sim_step(float(V), int(got_input), float(tau),
+                                   float(thresh), float(v_reset), float(weight), float(dt))
+        return [float(result[0]), int(result[1])]
 
-def get_simulate_fn():
-    """Try to compile user code, fall back to default."""
+_runtime_error_shown = False
+
+def apply_code(event=None):
+    """Compile user code from the textarea and update _user_sim_step."""
+    global _user_sim_step, _runtime_error_shown
     code = document.getElementById("code-editor").value
+    code_status = document.getElementById("code-status")
     local_ns = {}
     try:
-        exec(code, {"np": np, "numpy": np, "__builtins__": __builtins__}, local_ns)
-        if "simulate_lif" in local_ns:
-            return local_ns["simulate_lif"]
+        exec(code, {"__builtins__": __builtins__}, local_ns)
+        if "sim_step" in local_ns:
+            # quick test call to catch obvious errors
+            test_result = local_ns["sim_step"](0.0, 0, 20.0, 1.0, 0.0, 0.5, 1.0)
+            if not (hasattr(test_result, '__len__') and len(test_result) == 2):
+                raise ValueError("sim_step must return a tuple of (new_V, fired)")
+            _user_sim_step = local_ns["sim_step"]
+            _runtime_error_shown = False
+            code_status.textContent = "✓ code applied"
+            code_status.className = ""
+        else:
+            code_status.textContent = "error: no sim_step function found"
+            code_status.className = "error"
     except Exception as e:
-        document.getElementById("status").textContent = f"code error: {e}"
-    return default_simulate
+        code_status.textContent = f"error: {e}"
+        code_status.className = "error"
 
-def render():
-    global sim_dirty
-    tau, thresh, v_reset, weight, dt, T = get_params()
-    input_spikes = build_input_array(dt, T)
+# expose to JS
+window.pySimStep = create_proxy(py_sim_step)
+window.pyApplyCode = create_proxy(apply_code)
 
-    sim_fn = get_simulate_fn()
-    try:
-        time, V, output_spikes = sim_fn(input_spikes, tau, thresh, v_reset, weight, dt, T)
-    except Exception as e:
-        document.getElementById("status").textContent = f"sim error: {e}"
-        return
+# apply default code on load
+apply_code()
 
-    # --- plotting ---
-    fig, axes = plt.subplots(3, 1, figsize=(9, 5.5),
-                             gridspec_kw={"height_ratios": [1, 4, 1]},
-                             sharex=True)
-    fig.patch.set_facecolor("#1a1a1a")
-
-    colors = {"bg": "#1a1a1a", "fg": "#e0e0e0", "grid": "#333",
-              "spike_in": "#6cf", "membrane": "#4f8", "thresh": "#f66",
-              "spike_out": "#fc6"}
-
-    for ax in axes:
-        ax.set_facecolor(colors["bg"])
-        ax.tick_params(colors=colors["fg"], labelcolor=colors["fg"], labelsize=8)
-        for spine in ax.spines.values():
-            spine.set_color(colors["grid"])
-        ax.grid(True, color=colors["grid"], linewidth=0.3, alpha=0.5)
-
-    # input spikes
-    ax_in = axes[0]
-    spike_idx = np.where(input_spikes > 0)[0]
-    if len(spike_idx) > 0:
-        ax_in.vlines(time[spike_idx], 0, 1, colors=colors["spike_in"], linewidth=1.5)
-    ax_in.set_ylim(-0.1, 1.3)
-    ax_in.set_yticks([])
-    ax_in.set_ylabel("in", color=colors["fg"], fontsize=9)
-
-    # membrane potential
-    ax_v = axes[1]
-    ax_v.plot(time, V, color=colors["membrane"], linewidth=1.2, label="V(t)")
-    ax_v.axhline(thresh, color=colors["thresh"], linewidth=1, linestyle="--",
-                 alpha=0.8, label=f"threshold={thresh:.2f}")
-    ax_v.axhline(v_reset, color="#888", linewidth=0.6, linestyle=":", alpha=0.5,
-                 label=f"V_reset={v_reset:.2f}")
-    ax_v.set_ylabel("V", color=colors["fg"], fontsize=9)
-    ax_v.legend(loc="upper right", fontsize=7,
-                facecolor="#2a2a2a", edgecolor="#444", labelcolor=colors["fg"])
-
-    # output spikes
-    ax_out = axes[2]
-    out_idx = np.where(output_spikes > 0)[0]
-    if len(out_idx) > 0:
-        ax_out.vlines(time[out_idx], 0, 1, colors=colors["spike_out"], linewidth=1.5)
-    ax_out.set_ylim(-0.1, 1.3)
-    ax_out.set_yticks([])
-    ax_out.set_ylabel("out", color=colors["fg"], fontsize=9)
-    ax_out.set_xlabel("time (ms)", color=colors["fg"], fontsize=9)
-
-    plt.tight_layout()
-
-    # render to image
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=120, facecolor=colors["bg"])
-    plt.close(fig)
-    buf.seek(0)
-    img_data = base64.b64encode(buf.read()).decode("ascii")
-
-    plot_area = document.getElementById("plot-area")
-    plot_area.innerHTML = f'<img src="data:image/png;base64,{img_data}" alt="LIF simulation">'
-
-    n_in = int(np.sum(input_spikes))
-    n_out = int(np.sum(output_spikes))
-    document.getElementById("status").textContent = (
-        f"input spikes: {n_in} | output spikes: {n_out} | "
-        f"τ={tau} thresh={thresh} V_reset={v_reset} w={weight}"
-    )
-    sim_dirty = False
-
-# --- elapsed time tracker for spike placement ---
-class TimeTracker:
-    def __init__(self):
-        self.start = None
-    def reset(self):
-        self.start = None
-    def elapsed_ms(self):
-        if self.start is None:
-            from js import Date
-            self.start = Date.now()
-            return 0.0
-        from js import Date
-        return Date.now() - self.start
-
-tracker = TimeTracker()
-
-# --- event handlers ---
-def on_spike(event):
-    tau, thresh, v_reset, weight, dt, T = get_params()
-    t = tracker.elapsed_ms()
-    # ignore spikes outside simulation window
-    if t >= T:
-        document.getElementById("status").textContent = "spike ignored — past simulation time. press reset to start over."
-        return
-    input_spike_times.append(t)
-    render()
-
-def on_reset(event):
-    global input_spike_times
-    input_spike_times = []
-    tracker.reset()
-    render()
-
-def on_run(event):
-    render()
-
-def on_slider(event):
-    # update displayed values
-    for sid in ["tau", "thresh", "vreset", "weight", "dt", "T"]:
-        el = document.getElementById(sid)
-        disp = document.getElementById(sid + "-val")
-        if el and disp:
-            disp.textContent = el.value
-    render()
-
-# attach events
-document.getElementById("spike-btn").addEventListener("click", create_proxy(on_spike))
-document.getElementById("reset-btn").addEventListener("click", create_proxy(on_reset))
-document.getElementById("run-btn").addEventListener("click", create_proxy(on_run))
-
-for sid in ["tau", "thresh", "vreset", "weight", "dt", "T"]:
-    el = document.getElementById(sid)
-    if el:
-        el.addEventListener("input", create_proxy(on_slider))
-
-# initial render
+# signal JS that PyScript is ready
+window.pyReady = True
 document.getElementById("status").textContent = "ready — press spike me!"
-render()
+  </script>
+
+  <script>
+  (function() {
+    "use strict";
+
+    // --- Configuration ---
+    var MAX_BUF_MS = 5000;      // maximum buffer size in ms
+    var SIM_DT_MS = 1;          // simulation timestep in ms
+    var COLORS = {
+      bg:       "#1a1a1a",
+      grid:     "#333333",
+      fg:       "#e0e0e0",
+      spikeIn:  "#66ccff",
+      membrane: "#44ff88",
+      thresh:   "#ff6666",
+      vReset:   "#888888",
+      spikeOut: "#ffcc66"
+    };
+
+    // --- State ---
+    var V = 0;                      // membrane potential
+    var simTime = 0;                // simulation time in ms
+    var running = true;
+    var lastFrameTime = null;
+    var timeAccum = 0;              // fractional time accumulator
+
+    // ring buffers for traces
+    var bufLen = Math.ceil(MAX_BUF_MS / SIM_DT_MS);
+    var vTrace = new Float32Array(bufLen);
+    var inSpikes = new Uint8Array(bufLen);
+    var outSpikes = new Uint8Array(bufLen);
+    var writeIdx = 0;
+
+    // pending input spikes (injected by button)
+    var pendingSpikes = 0;
+
+    // spike counts for status
+    var totalInSpikes = 0;
+    var totalOutSpikes = 0;
+
+    // --- DOM refs ---
+    var canvasIn  = document.getElementById("canvas-in");
+    var canvasV   = document.getElementById("canvas-v");
+    var canvasOut = document.getElementById("canvas-out");
+    var ctxIn     = canvasIn.getContext("2d");
+    var ctxV      = canvasV.getContext("2d");
+    var ctxOut    = canvasOut.getContext("2d");
+    var statusEl  = document.getElementById("status");
+
+    // --- Parameter getters ---
+    function getParams() {
+      return {
+        tau:      parseFloat(document.getElementById("tau").value),
+        thresh:   parseFloat(document.getElementById("thresh").value),
+        vReset:   parseFloat(document.getElementById("vreset").value),
+        weight:   parseFloat(document.getElementById("weight").value),
+        windowMs: parseFloat(document.getElementById("window").value)
+      };
+    }
+
+    // --- Resize canvases to match CSS width ---
+    function resizeCanvases() {
+      var dpr = window.devicePixelRatio || 1;
+      [canvasIn, canvasV, canvasOut].forEach(function(c) {
+        var rect = c.getBoundingClientRect();
+        c.width = rect.width * dpr;
+        c.height = rect.height * dpr;
+        c.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
+      });
+    }
+
+    // --- Reset simulation ---
+    function resetSim() {
+      V = 0;
+      simTime = 0;
+      writeIdx = 0;
+      pendingSpikes = 0;
+      totalInSpikes = 0;
+      totalOutSpikes = 0;
+      lastFrameTime = null;
+      timeAccum = 0;
+      vTrace.fill(0);
+      inSpikes.fill(0);
+      outSpikes.fill(0);
+      statusEl.textContent = "ready — press spike me!";
+    }
+
+    // --- JS fallback simulation step (used before PyScript loads) ---
+    function jsSimStep(V, gotInput, p) {
+      var dV = -V / p.tau;
+      V += dV * SIM_DT_MS;
+      if (gotInput) V += p.weight;
+      var fired = 0;
+      if (V >= p.thresh) { fired = 1; V = p.vReset; }
+      return [V, fired];
+    }
+
+    // --- Simulation step (delegates to Python when available) ---
+    function simStep(p) {
+      var gotInput = 0;
+      if (pendingSpikes > 0) {
+        gotInput = 1;
+        pendingSpikes--;
+        totalInSpikes++;
+      }
+
+      var result;
+      if (window.pyReady && window.pySimStep) {
+        // call Python sim_step
+        var pyResult = window.pySimStep(V, gotInput, p.tau, p.thresh, p.vReset, p.weight, SIM_DT_MS);
+        result = [pyResult[0], pyResult[1]];
+      } else {
+        // fallback to JS before PyScript loads
+        result = jsSimStep(V, gotInput, p);
+      }
+
+      V = result[0];
+      var gotOutput = result[1];
+      if (gotOutput) totalOutSpikes++;
+
+      // write to ring buffer
+      vTrace[writeIdx] = V;
+      inSpikes[writeIdx] = gotInput;
+      outSpikes[writeIdx] = gotOutput;
+      writeIdx = (writeIdx + 1) % bufLen;
+
+      simTime += SIM_DT_MS;
+    }
+
+    // --- Drawing helpers ---
+    function drawSpikeRaster(ctx, canvas, data, color, windowMs) {
+      var w = canvas.getBoundingClientRect().width;
+      var h = canvas.getBoundingClientRect().height;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = COLORS.bg;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+
+      var samplesVisible = Math.min(bufLen, Math.ceil(windowMs / SIM_DT_MS));
+      var pxPerSample = w / samplesVisible;
+      var spikeWidth = Math.max(2, pxPerSample);
+
+      for (var i = 0; i < samplesVisible; i++) {
+        var idx = (writeIdx - samplesVisible + i + bufLen) % bufLen;
+        if (data[idx]) {
+          var x = (i / samplesVisible) * w;
+          ctx.fillStyle = color;
+          ctx.fillRect(x - spikeWidth / 2, h * 0.1, spikeWidth, h * 0.8);
+        }
+      }
+    }
+
+    function drawMembrane(ctx, canvas, p) {
+      var w = canvas.getBoundingClientRect().width;
+      var h = canvas.getBoundingClientRect().height;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = COLORS.bg;
+      ctx.fillRect(0, 0, w, h);
+
+      var samplesVisible = Math.min(bufLen, Math.ceil(p.windowMs / SIM_DT_MS));
+
+      var yMin = Math.min(p.vReset - 0.1, -0.2);
+      var yMax = Math.max(p.thresh + 0.2, 1.2);
+      for (var i = 0; i < samplesVisible; i++) {
+        var idx = (writeIdx - samplesVisible + i + bufLen) % bufLen;
+        var val = vTrace[idx];
+        if (val < yMin) yMin = val - 0.1;
+        if (val > yMax) yMax = val + 0.1;
+      }
+
+      function yToScreen(val) {
+        return h - ((val - yMin) / (yMax - yMin)) * h;
+      }
+
+      // grid lines
+      ctx.strokeStyle = COLORS.grid;
+      ctx.lineWidth = 0.5;
+      var gridStep = 0.5;
+      for (var g = Math.ceil(yMin / gridStep) * gridStep; g <= yMax; g += gridStep) {
+        var gy = yToScreen(g);
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.lineTo(w, gy);
+        ctx.stroke();
+      }
+
+      // threshold line
+      ctx.strokeStyle = COLORS.thresh;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      var threshY = yToScreen(p.thresh);
+      ctx.beginPath();
+      ctx.moveTo(0, threshY);
+      ctx.lineTo(w, threshY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = COLORS.thresh;
+      ctx.font = "11px Georgia, serif";
+      ctx.fillText("threshold = " + p.thresh.toFixed(2), 4, threshY - 4);
+
+      // V_reset line
+      ctx.strokeStyle = COLORS.vReset;
+      ctx.lineWidth = 0.8;
+      ctx.setLineDash([3, 3]);
+      var resetY = yToScreen(p.vReset);
+      ctx.beginPath();
+      ctx.moveTo(0, resetY);
+      ctx.lineTo(w, resetY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = COLORS.vReset;
+      ctx.font = "10px Georgia, serif";
+      ctx.fillText("V_reset = " + p.vReset.toFixed(2), 4, resetY + 12);
+
+      // membrane potential trace
+      ctx.strokeStyle = COLORS.membrane;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      var started = false;
+      for (var i = 0; i < samplesVisible; i++) {
+        var idx = (writeIdx - samplesVisible + i + bufLen) % bufLen;
+        var x = (i / samplesVisible) * w;
+        var y = yToScreen(vTrace[idx]);
+        if (!started) { ctx.moveTo(x, y); started = true; }
+        else { ctx.lineTo(x, y); }
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = COLORS.membrane;
+      ctx.font = "12px Georgia, serif";
+      ctx.fillText("V(t)", w - 36, 16);
+
+      ctx.fillStyle = COLORS.fg;
+      ctx.font = "10px monospace";
+      ctx.fillText(yMax.toFixed(1), 4, 12);
+      ctx.fillText(yMin.toFixed(1), 4, h - 4);
+    }
+
+    // --- Drawing function ---
+    function draw() {
+      var p = getParams();
+      drawSpikeRaster(ctxIn, canvasIn, inSpikes, COLORS.spikeIn, p.windowMs);
+      drawMembrane(ctxV, canvasV, p);
+      drawSpikeRaster(ctxOut, canvasOut, outSpikes, COLORS.spikeOut, p.windowMs);
+
+      statusEl.textContent =
+        "input spikes: " + totalInSpikes +
+        " | output spikes: " + totalOutSpikes +
+        " | τ=" + p.tau + " thresh=" + p.thresh +
+        " | V=" + V.toFixed(3);
+    }
+
+    // --- Animation loop ---
+    function frame(timestamp) {
+      if (!running) {
+        lastFrameTime = null;
+        draw();
+        requestAnimationFrame(frame);
+        return;
+      }
+
+      if (lastFrameTime === null) {
+        lastFrameTime = timestamp;
+      }
+
+      var elapsed = timestamp - lastFrameTime;
+      lastFrameTime = timestamp;
+
+      if (elapsed > 100) elapsed = 100;
+
+      var p = getParams();
+      timeAccum += elapsed;
+      var steps = Math.floor(timeAccum / SIM_DT_MS);
+      timeAccum -= steps * SIM_DT_MS;
+      for (var s = 0; s < steps; s++) {
+        simStep(p);
+      }
+
+      draw();
+      requestAnimationFrame(frame);
+    }
+
+    // --- Event handlers ---
+    document.getElementById("spike-btn").addEventListener("click", function() {
+      pendingSpikes++;
+    });
+
+    document.getElementById("reset-btn").addEventListener("click", function() {
+      resetSim();
+    });
+
+    document.getElementById("pause-btn").addEventListener("click", function() {
+      running = !running;
+      document.getElementById("pause-btn").textContent = running ? "pause" : "resume";
+    });
+
+    document.getElementById("apply-btn").addEventListener("click", function() {
+      if (window.pyApplyCode) {
+        window.pyApplyCode();
+      } else {
+        document.getElementById("code-status").textContent = "pyscript still loading…";
+      }
+    });
+
+    // slider display updates
+    ["tau", "thresh", "vreset", "weight", "window"].forEach(function(sid) {
+      var el = document.getElementById(sid);
+      if (el) {
+        el.addEventListener("input", function() {
+          var disp = document.getElementById(sid + "-val");
+          if (disp) disp.textContent = el.value;
+        });
+      }
+    });
+
+    // keyboard shortcut: space to inject spike
+    document.addEventListener("keydown", function(e) {
+      if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        pendingSpikes++;
+      }
+    });
+
+    // handle resize
+    window.addEventListener("resize", resizeCanvases);
+
+    // init
+    resizeCanvases();
+    requestAnimationFrame(frame);
+  })();
   </script>
 </body>
 </html>
