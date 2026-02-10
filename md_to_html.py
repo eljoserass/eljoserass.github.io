@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-# Converts markdown to HTML with template structure. Handles: headings, paragraphs, bold, italic, code, lists, blockquotes, links, hr. Ignores: images, small tags.
+# Converts markdown to HTML with template structure. Handles: headings,
+# paragraphs, bold, italic, code, lists, blockquotes, links, hr.
+# Ignores: images, small tags.
 
 import argparse
 import markdown
+from bs4 import BeautifulSoup
 
 def convert_markdown_to_html(md_content, title="My Site"):
     """Convert markdown to full HTML page matching template structure."""
@@ -25,13 +28,20 @@ def convert_markdown_to_html(md_content, title="My Site"):
 </body>
 </html>"""
     
-    return html_template
+    # Pretty print with line wrapping
+    soup = BeautifulSoup(html_template, 'html.parser')
+    return soup.prettify(formatter='html')
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Convert Markdown to HTML with custom template')
+    parser = argparse.ArgumentParser(
+        description='Convert Markdown to HTML with custom template'
+    )
     parser.add_argument('input', help='Input markdown file')
     parser.add_argument('output', help='Output HTML file')
-    parser.add_argument('-t', '--title', default='My Site', help='Page title (default: My Site)')
+    parser.add_argument(
+        '-t', '--title', default='My Site',
+        help='Page title (default: My Site)'
+    )
     
     args = parser.parse_args()
     

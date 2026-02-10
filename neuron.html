@@ -150,17 +150,11 @@
   </style>
 </head>
 <body>
-  <p><a href="/">← home</a></p>
+  <!-- <p><a href="/">← home</a></p> -->
   <h1>LIF Neuron Simulator</h1>
 
   <p>Interactive <a href="https://en.wikipedia.org/wiki/Biological_neuron_model#Leaky_integrate-and-fire">Leaky Integrate-and-Fire</a> neuron simulator running in real time. Press the button to inject input spikes and watch the membrane potential evolve dynamically. Edit the Python simulation code below to change the neuron dynamics.</p>
 
-  <div class="action-row">
-    <button class="spike-btn" id="spike-btn">⚡ spike me</button>
-    <button class="pause-btn" id="pause-btn">pause</button>
-    <button class="reset-btn" id="reset-btn">reset</button>
-    <span id="status">loading pyscript…</span>
-  </div>
 
   <h2>parameters</h2>
 
@@ -185,6 +179,13 @@
       <label>time window: <span id="window-val">2000</span> ms</label>
       <input type="range" id="window" min="200" max="5000" value="2000" step="100">
     </div>
+
+  </div>
+    <div class="action-row">
+    <button class="spike-btn" id="spike-btn">⚡ spike me</button>
+    <button class="pause-btn" id="pause-btn">pause</button>
+    <button class="reset-btn" id="reset-btn">reset</button>
+    <span id="status">loading pyscript…</span>
   </div>
 
   <div class="canvas-container">
@@ -242,7 +243,7 @@
   </div>
 
   <hr>
-  <p><small><a href="/">home</a></small></p>
+  <!-- <p><small><a href="/">home</a></small></p> -->
 
   <!-- PyScript: compile user Python into a callable sim_step function -->
   <script type="py">
