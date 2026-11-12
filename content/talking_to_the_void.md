@@ -1,4 +1,5 @@
 ---
+tags: [notes]
 date: 2025-12-08
 redirect_from: [/notes/talking_to_the_void.html]
 ---

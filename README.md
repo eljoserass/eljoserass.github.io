@@ -4,7 +4,7 @@ Built with [Zola](https://www.getzola.org). Push to `master` and the GitHub Acti
 
 ## Writing
 
-Drop a `.md` file into `content/notes/` or `content/things/`. That's it: no front matter needed.
+Drop a `.md` file into `content/`. That's it: no front matter needed.
 
 - **title**: the first `# heading`, otherwise the file name
 - **date**: the date the file was first committed; set `date: 2025-01-31` to override it
@@ -22,7 +22,7 @@ link: /neuron.html # the list links here instead of to the page
 ---
 ```
 
-A new folder becomes a new section: copy `content/notes/_index.md` into it.
+Everything is listed together on the home page; use tags (`notes`, `things`, ...) to group things.
 
 ## Preview locally
 

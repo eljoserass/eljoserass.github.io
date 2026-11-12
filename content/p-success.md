@@ -1,4 +1,5 @@
 ---
+tags: [notes]
 date: 2024-11-01
 redirect_from: [/notes/p(success).html]
 ---

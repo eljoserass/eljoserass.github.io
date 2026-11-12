@@ -1,4 +1,5 @@
 ---
+tags: [things]
 date: 2026-02-10
 redirect_from: [/things/doorblock.html]
 ---

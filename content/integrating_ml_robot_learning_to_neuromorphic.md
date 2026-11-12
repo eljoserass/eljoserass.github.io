@@ -1,4 +1,5 @@
 ---
+tags: [notes]
 date: 2026-01-31
 redirect_from: [/notes/integrating_ml_robot_learning_to_neuromorphic.html]
 ---
