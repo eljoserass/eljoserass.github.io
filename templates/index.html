@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block content %}
+{{ section.content | safe }}
+{{ <post_list pages={section.pages} /> }}
+{% endblock %}

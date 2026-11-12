@@ -1,0 +1,41 @@
+---
+date: 2025-12-08
+redirect_from: [/notes/something_a_week.html]
+---
+
+# something a week
+
+as an effort to overcome my overthinking
+
+expose myself to uncomfortable new habits
+
+there is no reason not to really, if I happen to be too ashamed its only a `git commit` away to be disappear
+
+it can be any means of expression, the one that im more comfortable with at that point.
+
+perceived effortless perfetion is actually a bunch of unknown practice
+
+sorry internet to dump you with more slop, at least this one is written with my monkey fingers, i promise all the practice will be worth it
+
+```
+""""
+
+i want to say what im going to do, while the expression itself is making the somehting that im going to do
+
+i want to say why i want to do it. which is that i overthink and not expose myself and maybe i should do it more
+    - perfection involves iteration
+    - iteration involves exposure
+    - exposure involves courage?
+
+closing thought that i know what im pushing is not super high quality, but is a piece of myself.
+the internet definetly doesnt need more slop, but it might need more authentic human generated content
+
+
+about perfection. in the picasso musseum they just casually dropped that a guy gifted his collection of 1000s of picassos
+( it wasnt just a guy, I know. it was his close asssistant) (there is 100s of thousands registered picassos, he was creating something all the time).
+some may be great, some might not. but all were a part of the artist.
+
+
+i mean the notes folder is literally just drafts i could post it as is
+""""
+```

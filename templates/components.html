@@ -1,0 +1,11 @@
+{% component post_list(pages) %}
+<ul class="posts">
+  {% for p in pages %}
+  <li>
+    <time>{{ p.date | date(format="%Y-%m-%d") }}</time>
+    <a href="{{ p.extra.link or p.permalink }}">{{ p.title }}</a>
+    {% if p.taxonomies.tags %}<span class="tags">{% for t in p.taxonomies.tags %}<a href="{{ get_taxonomy_url(kind='tags', term=t) }}">#{{ t }}</a> {% endfor %}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endcomponent post_list %}

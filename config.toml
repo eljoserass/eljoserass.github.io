@@ -1,0 +1,18 @@
+base_url = "https://eljoserass.github.io"
+title = "eljoserass"
+compile_sass = false
+build_search_index = false
+# notes are plain markdown: never treat {{ or {% in them as template code
+skip_content_templating = ["**/*.md"]
+generate_feeds = true
+feed_filenames = ["atom.xml"]
+
+taxonomies = [{ name = "tags", feed = false }]
+
+[markdown]
+smart_punctuation = false
+external_links_target_blank = false
+
+[link_checker]
+# a broken link in a note warns instead of failing the deploy
+internal_level = "warn"

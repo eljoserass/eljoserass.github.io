@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}tags · {{ config.title }}{% endblock %}
+{% block content %}
+<h1>tags</h1>
+{% if terms %}
+<ul>
+  {% for t in terms %}
+  <li><a href="{{ t.permalink }}">#{{ t.name }}</a> ({{ t.pages | length }})</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>no tags yet</p>
+{% endif %}
+{% endblock %}

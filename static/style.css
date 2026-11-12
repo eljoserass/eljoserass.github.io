@@ -39,3 +39,31 @@ blockquote {
   padding-left: 20px;
   color: #aaa;
 }
+
+nav {
+  margin-bottom: 2em;
+  color: #888;
+}
+
+.posts {
+  list-style: none;
+  padding: 0;
+}
+
+.posts li {
+  margin: 0.4em 0;
+}
+
+time, .tags, .meta {
+  color: #888;
+  font-size: 0.9em;
+}
+
+.posts time {
+  margin-right: 0.6em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tags a, .meta a {
+  text-decoration: none;
+}
