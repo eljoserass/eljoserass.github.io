@@ -12,8 +12,9 @@
   <nav>
     <a href="{{ get_url(path='/') }}">home</a> ·
     <a href="{{ get_url(path='@/notes/_index.md') }}">notes</a> ·
-    <a href="{{ get_url(path='@/things/_index.md') }}">things</a> ·
-    <a href="{{ get_url(path='/tags/') }}">tags</a>
+    <a href="{{ get_url(path='@/things/_index.md') }}">things</a>
+    {% set tags = get_taxonomy(kind="tags", required=false) %}
+    {% if tags and tags.items %} · <a href="{{ get_url(path='/tags/') }}">tags</a>{% endif %}
   </nav>
   {% block content %}{% endblock %}
 </body>
